@@ -1,4 +1,4 @@
-# GateKeeper
+# Gatekeeper
 [![Language](https://img.shields.io/badge/Swift-3-brightgreen.svg)](http://swift.org)
 [![Build Status](https://travis-ci.org/nodes-vapor/gatekeeper.svg?branch=master)](https://travis-ci.org/nodes-vapor/gatekeeper)
 [![codecov](https://codecov.io/gh/nodes-vapor/gatekeeper/branch/master/graph/badge.svg)](https://codecov.io/gh/nodes-vapor/gatekeeper)
