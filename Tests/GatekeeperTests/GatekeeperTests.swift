@@ -3,12 +3,19 @@ import XCTest
 import URI
 import HTTP
 import Vapor
+import Foundation
 
 @testable import Gatekeeper
 
 class GatekeeperTests: XCTestCase {
     static var allTests = [
         ("testRateLimiter", testRateLimiter),
+        ("testRateLimiterNoPeer", testRateLimiterNoPeer),
+        ("testRateLimiterCountRefresh", testRateLimiterCountRefresh),
+        ("testSSLEnforcerBasic", testSSLEnforcerBasic),
+        ("testSSLEnforcerDenied", testSSLEnforcerDenied),
+        ("testSSLEnforcerDoNotEnforce", testSSLEnforcerDoNotEnforce),
+        ("testRefreshIntervalValues", testRefreshIntervalValues),
     ]
     
     func testRateLimiter() {
