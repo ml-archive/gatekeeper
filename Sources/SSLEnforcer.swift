@@ -1,13 +1,6 @@
 import HTTP
 import Vapor
 
-public struct RateLimiter: Middleware {
-    public func respond(to request: Request, chainingTo next: Responder) throws -> Response {
-        let response = try next.respond(to: request)
-        return response
-    }
-}
-
 public struct SSLEnforcer: Middleware {
     private var shouldEnforce: Bool
     private let error: AbortError
