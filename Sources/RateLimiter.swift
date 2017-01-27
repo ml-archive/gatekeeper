@@ -22,22 +22,22 @@ public struct Rate {
     internal var refreshInterval: Double {
         switch interval {
         case .second:
-            return 1.0
+            return 1
         case .minute:
-            return 60.0
+            return 60
         case .hour:
-            return 3_600.0
+            return 3_600
         case .day:
-            return 86_400.0
+            return 86_400
         }
     }
 }
 
 public struct RateLimiter: Middleware {
-    private var cache: CacheProtocol
+    internal var cache: CacheProtocol
     
-    private let limit: Int
-    private let refreshInterval: Double
+    internal let limit: Int
+    internal let refreshInterval: Double
     
     public init(rate: Rate, cache: CacheProtocol = MemoryCache()) {
         self.cache = cache
@@ -65,7 +65,7 @@ public struct RateLimiter: Middleware {
                 try cache.set(peer, Node(node: [
                     "createdAt": createdAt,
                     "requestsLeft": requestsLeft
-                    ]))
+                ]))
             } catch {
                 print("WARNING: cache failed: \(error)")
             }
