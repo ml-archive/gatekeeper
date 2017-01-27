@@ -9,7 +9,7 @@ Rate Limiter and SSL enforcing middleware.
 ## Integration
 Update your `Package.swift` file.
 ```swift
-.Package(url: "https://github.com/nodes-vapor/paginator", majorVersion: 0)
+.Package(url: "https://github.com/nodes-vapor/gatekeeper", majorVersion: 0)
 ```
 
 ## Getting started 🚀
