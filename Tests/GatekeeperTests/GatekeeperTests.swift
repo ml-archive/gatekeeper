@@ -26,11 +26,16 @@ class GatekeeperTests: XCTestCase {
             do {
                 _ = try middleware.respond(to: request, chainingTo: MockResponder())
                 XCTAssertTrue(i <= 10, "ran \(i) times.")
-            } catch Abort.custom(status: let status, message: _) {
-                XCTAssertEqual(status, .tooManyRequests)
-                XCTAssertEqual(i, 11, "Should've failed after the 11th attempt.")
-                break
-            } catch {
+            } catch let error as Abort {
+                switch error.status {
+                    case .tooManyRequests:
+                        //success
+                        XCTAssertEqual(i, 11, "Should've failed after the 11th attempt.")
+                        break
+                    default:
+                        XCTFail("Expected too many request: \(error)")
+                }
+            }catch {
                 XCTFail("Caught wrong error: \(error)")
             }
         }
@@ -42,8 +47,14 @@ class GatekeeperTests: XCTestCase {
         
         do {
             _ = try middleware.respond(to: request, chainingTo: MockResponder())
-        } catch Abort.custom(status: let status, message: _){
-            XCTAssertEqual(status, .forbidden)
+        } catch let error as Abort {
+            switch error.status {
+                case .forbidden:
+                    //success
+                    break
+                default:
+                    XCTFail("Expected forbidden")
+            }
         } catch {
             XCTFail("Rate limiter failed: \(error)")
         }
@@ -94,8 +105,14 @@ class GatekeeperTests: XCTestCase {
         do {
             _ = try middleware.respond(to: request, chainingTo: MockResponder())
             XCTFail("Should've been rejected")
-        } catch Abort.badRequest {
-            // success
+        } catch let error as Abort {
+            switch error.status {
+                case .badRequest:
+                    // success
+                    break
+                default:
+                    XCTFail("Expected bad request")
+            }
         } catch {
             XCTFail("Request failed: \(error)")
         }
@@ -129,11 +146,15 @@ class GatekeeperTests: XCTestCase {
 
 extension GatekeeperTests {
     var developmentDrop: Droplet {
-        return Droplet(environment: .development)
+        let config = try! Config()
+        config.environment = .development
+        return try! Droplet(config: config)
     }
     
     var productionDrop: Droplet {
-        return Droplet(environment: .production)
+        let config = try! Config()
+        config.environment = .production
+        return try! Droplet(config: config)
     }
 
     func getHTTPRequest() -> Request {

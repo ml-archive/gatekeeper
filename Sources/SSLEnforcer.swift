@@ -6,7 +6,7 @@ public struct SSLEnforcer: Middleware {
     private let error: AbortError
     
     public init(error: AbortError, drop: Droplet, environments: [Environment] = [.production]) {
-        shouldEnforce = environments.contains(drop.environment)
+        shouldEnforce = environments.contains(drop.config.environment)
         self.error = error
     }
     
