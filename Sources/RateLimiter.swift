@@ -47,7 +47,11 @@ public struct RateLimiter: Middleware {
     
     public func respond(to request: Request, chainingTo next: Responder) throws -> Response {
         guard let peer = request.peerAddress?.address() else {
-            throw Abort.custom(status: .forbidden, message: "Unable to verify peer.")
+            throw Abort(
+                .forbidden,
+                metadata: nil,
+                reason: "Unable to verify peer."
+            )
         }
         
         var entry = try cache.get(peer)
@@ -73,7 +77,11 @@ public struct RateLimiter: Middleware {
         
         requestsLeft -= 1
         guard requestsLeft >= 0 else {
-            throw Abort.custom(status: .tooManyRequests, message: "Slow down.")
+            throw Abort(
+                .tooManyRequests,
+                metadata: nil,
+                reason: "Slow down."
+            )
         }
         
         let response = try next.respond(to: request)
