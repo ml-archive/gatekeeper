@@ -35,7 +35,7 @@ class GatekeeperTests: XCTestCase {
                     default:
                         XCTFail("Expected too many request: \(error)")
                 }
-            }catch {
+            } catch {
                 XCTFail("Caught wrong error: \(error)")
             }
         }
