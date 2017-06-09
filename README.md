@@ -53,6 +53,7 @@ case .day
 
 ## Credits 🏆
 This package is developed and maintained by the Vapor team at [Nodes](https://www.nodes.dk).
+The package owner for this project is [Tom](https://github.com/tomserowka).
 
 ## License 📄
 This package is open-sourced software licensed under the [MIT license](http://opensource.org/licenses/MIT)
