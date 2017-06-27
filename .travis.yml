@@ -1,8 +1,0 @@
-os:
-  - linux
-language: generic
-sudo: required
-dist: trusty
-script:
-  - eval "$(curl -sL https://gist.githubusercontent.com/BrettRToomey/1256d98cce5546c696cc68d9f61ad46f/raw/d5fb266a17f26c41b59fd00867a3a2474c3efee3/TravisSwift31)"
-  - eval "$(curl -sL https://swift.vapor.sh/codecov)"
