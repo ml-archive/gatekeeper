@@ -1,4 +1,4 @@
-# Gatekeeper 🔑
+# Gatekeeper 👮
 [![Swift Version](https://img.shields.io/badge/Swift-3.1-brightgreen.svg)](http://swift.org)
 [![Vapor Version](https://img.shields.io/badge/Vapor-2-F6CBCA.svg)](http://vapor.codes)
 [![Linux Build Status](https://img.shields.io/circleci/project/github/nodes-vapor/gatekeeper.svg?label=Linux)](https://circleci.com/gh/nodes-vapor/gatekeeper)
