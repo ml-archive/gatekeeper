@@ -158,14 +158,18 @@ extension GatekeeperTests {
     }
 
     func getHTTPRequest() -> Request {
-        return try! Request(method: .get, uri: "http://localhost:8080/")
+        return Request(method: .get, uri: "http://localhost:8080/")
     }
     
     func getHTTPSRequest() -> Request {
+
+        var headers = [HeaderKey: String]()
+        headers["X-Forwarded-For"] = "192.168.1.2"
+
         return try! Request(
             method: .get,
             uri: URI("https://localhost:8080/"),
-            peerAddress: PeerAddress(stream: "192.168.1.2")
+            headers: headers
         )
     }
 }
