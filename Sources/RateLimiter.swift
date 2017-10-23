@@ -46,7 +46,7 @@ public struct RateLimiter: Middleware {
     }
     
     public func respond(to request: Request, chainingTo next: Responder) throws -> Response {
-        guard let peer = request.peerAddress?.address() else {
+        guard let peer = request.peerHostname else {
             throw Abort(
                 .forbidden,
                 metadata: nil,
