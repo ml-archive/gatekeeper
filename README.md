@@ -8,7 +8,7 @@
 [![Readme Score](http://readme-score-api.herokuapp.com/score.svg?url=https://github.com/nodes-vapor/gatekeeper)](http://clayallsopp.github.io/readme-score?url=https://github.com/nodes-vapor/gatekeeper)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/nodes-vapor/gatekeeper/master/LICENSE)
 
-Rate Limiter and SSL enforcing middleware.
+Rate Limiter middleware.
 
 
 ## 📦 Installation
@@ -20,33 +20,6 @@ Update your `Package.swift` file.
 
 
 ## Getting started 🚀
-
-Both the rate limiter and SSL-enforcing middleware are easy to configure and get running.
-
-
-## SSLEnforcer 🔒
-
-`SSLEnforcer` has three configurable fields: the error to be thrown, your `Droplet` and the environments you wish to enforce on. The environments defaults to `[.production]`.
-```swift
-let drop = Droplet()
-// this will only enforce if running in `production` mode.
-let enforcer = SSLEnforcer(error: Abort.notFound, drop: drop)
-```
-
-If you wish to secure your endpoints during development you can do the following:
-```swift
-let enforcer = SSLEnforcer(
-    error: Abort.notFound,
-    drop: drop,
-    environments: [
-        .production,
-        .development
-    ]
-)
-```
-
-
-## RateLimiter ⏱
 
 `RateLimiter` has two configurable fields: the maximum rate and the cache to use. If you don't supply your own cache the limiter will create its own, in-memory cache.
 
@@ -63,7 +36,6 @@ case .minute
 case .hour
 case .day
 ```
-
 
 ## Credits 🏆
 
