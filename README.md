@@ -10,6 +10,9 @@
 
 Rate Limiter middleware.
 
+**How it works**
+
+The middleware makes it possible to restrict the number of requests from clients, based on their IP address.
 
 ## 📦 Installation
 
