@@ -27,6 +27,50 @@ Update your `Package.swift` file.
 let limiter = RateLimiter(rate: Rate(10, per: .minute))
 ```
 
+### Adding middleware
+You can add the middleware either globally or to a route group.
+
+#### Adding Middleware Globally
+
+#### `Sources/App/Config+Setup.swift`
+```
+import RateLimiter
+```
+
+```
+public func setup() throws {
+    // ...
+
+    addConfigurable(middleware: RateLimiter(rate: Rate(10, per: .minute)), name: "ratelimiter")
+}
+```
+
+#### `Config/droplet.json`
+
+Add ratelimiter to the middleware array
+
+```
+"middleware": [
+    "error",
+    "date",
+    "file",
+    "ratelimiter"
+],
+```
+
+
+#### Adding Middleware to a Route Group
+
+```Swift
+let limiter = RateLimiter(rate: Rate(10, per: .minute))
+
+drop.group(limiter) { group in
+   // Routes
+}
+```
+
+
+
 ### The `Rate.Interval` enumeration
 
 The currently implemented intervals are:
