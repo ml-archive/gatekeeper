@@ -33,7 +33,7 @@ public struct Rate {
     }
 }
 
-public struct RateLimiter: Middleware {
+public struct Gatekeeper: Middleware {
     internal var cache: CacheProtocol
     
     internal let limit: Int
