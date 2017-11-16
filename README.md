@@ -33,11 +33,11 @@ You can add the middleware either globally or to a route group.
 #### Adding Middleware Globally
 
 #### `Sources/App/Config+Setup.swift`
-```
+```swift
 import RateLimiter
 ```
 
-```
+```swift
 public func setup() throws {
     // ...
 
@@ -49,13 +49,13 @@ public func setup() throws {
 
 Add ratelimiter to the middleware array
 
-```
+```json
 "middleware": [
     "error",
     "date",
     "file",
     "ratelimiter"
-],
+]
 ```
 
 
