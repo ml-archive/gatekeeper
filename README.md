@@ -13,6 +13,10 @@ Rate Limiter middleware.
 **How it works**
 
 The middleware restricts the number of requests from clients, based on their IP address.
+It works by adding the clients IP address to the cache and count how many requests the clients can make during the Rate Limiter's lifespan and give back an HTTP 429(Too Many Requests) if the limit has been reached. The number of requests left will be reset when the defined timespan has been reached
+
+> Please take into consideration that multiple clients can be using the same IP address. eg. public wifi
+
 
 ## 📦 Installation
 
