@@ -11,7 +11,7 @@
 GateKeeper is a middleware that restricts the number of requests from clients, based on their IP address.
 It works by adding the clients IP address to the cache and count how many requests the clients can make during the GateKeepers defined lifespan and give back an HTTP 429(Too Many Requests) if the limit has been reached. The number of requests left will be reset when the defined timespan has been reached
 
-**Please take into consideration that multiple clients can be using the same IP address. eg. public wifi** 
+**Please take into consideration that multiple clients can be using the same IP address. eg. public wifi**
 
 
 ## 📦 Installation
@@ -24,10 +24,10 @@ Update your `Package.swift` file.
 
 ## Getting started 🚀
 
-`GateKeeper` has two configurable fields: the maximum rate and the cache to use. If you don't supply your own cache the limiter will create its own, in-memory cache.
+`Gatekeeper` has two configurable fields: the maximum rate and the cache to use. If you don't supply your own cache the limiter will create its own, in-memory cache.
 
 ```swift
-let gateKeeper = GateKeeper(rate: Rate(10, per: .minute))
+let gatekeeper = GateKeeper(rate: Rate(10, per: .minute))
 ```
 
 ### Adding middleware
@@ -37,27 +37,27 @@ You can add the middleware either globally or to a route group.
 
 #### `Sources/App/Config+Setup.swift`
 ```swift
-import GateKeeper
+import Gatekeeper
 ```
 
 ```swift
 public func setup() throws {
     // ...
 
-    addConfigurable(middleware: GateKeeper(rate: Rate(10, per: .minute)), name: "gateKeeper")
+    addConfigurable(middleware: GateKeeper(rate: Rate(10, per: .minute)), name: "gatekeeper")
 }
 ```
 
 #### `Config/droplet.json`
 
-Add `gateKeeper` to the middleware array
+Add `gatekeeper` to the middleware array
 
 ```json
 "middleware": [
     "error",
     "date",
     "file",
-    "gateKeeper"
+    "gatekeeper"
 ]
 ```
 
@@ -65,13 +65,12 @@ Add `gateKeeper` to the middleware array
 #### Adding Middleware to a Route Group
 
 ```Swift
-let gateKeeper = GateKeeper(rate: Rate(10, per: .minute))
+let gatekeeper = Gatekeeper(rate: Rate(10, per: .minute))
 
-drop.group(gateKeeper) { group in
+drop.group(gatekeeper) { group in
    // Routes
 }
 ```
-
 
 
 ### The `Rate.Interval` enumeration
