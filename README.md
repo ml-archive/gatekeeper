@@ -27,7 +27,7 @@ Update your `Package.swift` file.
 `GateKeeper` has two configurable fields: the maximum rate and the cache to use. If you don't supply your own cache the limiter will create its own, in-memory cache.
 
 ```swift
-let limiter = GateKeeper(rate: Rate(10, per: .minute))
+let gateKeeper = GateKeeper(rate: Rate(10, per: .minute))
 ```
 
 ### Adding middleware
