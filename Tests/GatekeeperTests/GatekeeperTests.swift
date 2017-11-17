@@ -9,14 +9,14 @@ import Foundation
 
 class GatekeeperTests: XCTestCase {
     static var allTests = [
-        ("testRateLimiter", testRateLimiter),
-        ("testRateLimiterNoPeer", testRateLimiterNoPeer),
-        ("testRateLimiterCountRefresh", testRateLimiterCountRefresh),
+        ("testGateKeeper", testGateKeeper),
+        ("testGateKeeperNoPeer", testGateKeeperNoPeer),
+        ("testGateKeeperCountRefresh", testGateKeeperCountRefresh),
         ("testRefreshIntervalValues", testRefreshIntervalValues),
     ]
     
-    func testRateLimiter() {
-        let middleware = RateLimiter(rate: Rate(10, per: .second))
+    func testGateKeeper() {
+        let middleware = Gatekeeper(rate: Rate(10, per: .second))
         let request = getHTTPSRequest()
         
         for i in 1...11 {
@@ -38,8 +38,8 @@ class GatekeeperTests: XCTestCase {
         }
     }
     
-    func testRateLimiterNoPeer() {
-        let middleware = RateLimiter(rate: Rate(100, per: .second))
+    func testGateKeeperNoPeer() {
+        let middleware = Gatekeeper(rate: Rate(100, per: .second))
         let request = getHTTPRequest()
         
         do {
@@ -57,8 +57,8 @@ class GatekeeperTests: XCTestCase {
         }
     }
     
-    func testRateLimiterCountRefresh() {
-        let middleware = RateLimiter(rate: Rate(100, per: .second))
+    func testGateKeeperCountRefresh() {
+        let middleware = Gatekeeper(rate: Rate(100, per: .second))
         let request = getHTTPSRequest()
         
         for _ in 0..<50 {
