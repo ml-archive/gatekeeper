@@ -50,7 +50,7 @@ public func setup() throws {
 
 #### `Config/droplet.json`
 
-Add ratelimiter to the middleware array
+Add `gateKeeper` to the middleware array
 
 ```json
 "middleware": [
