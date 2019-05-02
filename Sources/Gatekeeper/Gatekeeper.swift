@@ -53,7 +53,7 @@ public struct Gatekeeper: Service {
                 return cache.set(peerCacheKey, to: entry).transform(to: entry)
             }.map(to: Entry.self) { entry in
 
-                if entry.requestsLeft <= 0 {
+                if entry.requestsLeft < 0 {
                     throw Abort(
                         .tooManyRequests,
                         reason: "Patience you must have, my young Padawan."
