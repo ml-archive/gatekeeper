@@ -1,90 +1,77 @@
-import HTTP
-import Cache
 import Vapor
-import Foundation
 
-public struct Rate {
-    public enum Interval {
-        case second
-        case minute
-        case hour
-        case day
+public struct Gatekeeper: Service {
+
+    internal let config: GatekeeperConfig
+    internal let cacheFactory: ((Container) throws -> KeyedCache)
+
+    public init(
+        config: GatekeeperConfig,
+        cacheFactory: @escaping ((Container) throws -> KeyedCache) = { container in try container.make() }
+    ) {
+        self.config = config
+        self.cacheFactory = cacheFactory
     }
-    
-    public let limit: Int
-    public let interval: Interval
-    
-    public init(_ limit: Int, per interval: Interval) {
-        self.limit = limit
-        self.interval = interval
-    }
-    
-    internal var refreshInterval: Double {
-        switch interval {
-        case .second:
-            return 1
-        case .minute:
-            return 60
-        case .hour:
-            return 3_600
-        case .day:
-            return 86_400
+
+    public func accessEndpoint(
+        on request: Request
+    ) throws -> Future<Gatekeeper.Entry> {
+
+        guard let peerHostName = request.http.remotePeer.hostname else {
+            throw Abort(
+                .forbidden,
+                reason: "Unable to verify peer"
+            )
         }
+
+        let peerCacheKey = cacheKey(for: peerHostName)
+        let cache = try cacheFactory(request)
+
+        return cache.get(peerCacheKey, as: Entry.self)
+            .map(to: Entry.self) { entry in
+                if let entry = entry {
+                    return entry
+                } else {
+                    return Entry(
+                        peerHostname: peerHostName,
+                        createdAt: Date(),
+                        requestsLeft: self.config.limit
+                    )
+                }
+            }
+            .map(to: Entry.self) { entry in
+
+                let now = Date()
+                var mutableEntry = entry
+                if now.timeIntervalSince1970 - entry.createdAt.timeIntervalSince1970 >= self.config.refreshInterval {
+                    mutableEntry.createdAt = now
+                    mutableEntry.requestsLeft = self.config.limit
+                }
+                mutableEntry.requestsLeft -= 1
+                return mutableEntry
+            }.then { entry in
+                return cache.set(peerCacheKey, to: entry).transform(to: entry)
+            }.map(to: Entry.self) { entry in
+
+                if entry.requestsLeft <= 0 {
+                    throw Abort(
+                        .tooManyRequests,
+                        reason: "Patience you must have, my young Padawan."
+                    )
+                }
+                return entry
+            }
+    }
+
+    private func cacheKey(for hostname: String) -> String {
+        return "gatekeeper_\(hostname)"
     }
 }
 
-public struct Gatekeeper: Middleware {
-    internal var cache: CacheProtocol
-    
-    internal let limit: Int
-    internal let refreshInterval: Double
-    
-    public init(rate: Rate, cache: CacheProtocol = MemoryCache()) {
-        self.cache = cache
-        self.limit = rate.limit
-        self.refreshInterval = rate.refreshInterval
-    }
-    
-    public func respond(to request: Request, chainingTo next: Responder) throws -> Response {
-        guard let peer = request.peerHostname else {
-            throw Abort(
-                .forbidden,
-                metadata: nil,
-                reason: "Unable to verify peer."
-            )
-        }
-        
-        var entry = try cache.get(peer)
-        var createdAt = entry?["createdAt"]?.double ?? Date().timeIntervalSince1970
-        var requestsLeft = entry?["requestsLeft"]?.int ?? limit
-        
-        let now = Date().timeIntervalSince1970
-        if now - createdAt >= refreshInterval {
-            createdAt = now
-            requestsLeft = limit
-        }
-        
-        defer {
-            do {
-                try cache.set(peer, Node(node: [
-                    "createdAt": createdAt,
-                    "requestsLeft": requestsLeft
-                ]))
-            } catch {
-                print("WARNING: cache failed: \(error)")
-            }
-        }
-        
-        requestsLeft -= 1
-        guard requestsLeft >= 0 else {
-            throw Abort(
-                .tooManyRequests,
-                metadata: nil,
-                reason: "Slow down."
-            )
-        }
-        
-        let response = try next.respond(to: request)
-        return response
+extension Gatekeeper {
+    public struct Entry: Codable {
+        let peerHostname: String
+        var createdAt: Date
+        var requestsLeft: Int
     }
 }
