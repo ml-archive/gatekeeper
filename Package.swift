@@ -18,7 +18,7 @@ let package = Package(
                 "Vapor"
             ]),
         .testTarget(
-            name: "GateKeeperTests",
+            name: "GatekeeperTests",
             dependencies: ["Gatekeeper"]),
     ]
 )

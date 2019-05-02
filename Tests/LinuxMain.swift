@@ -1,7 +1,8 @@
 import XCTest
 
-@testable import GatekeeperTests
+import GatekeeperTests
 
-XCTMain([
-    testCase(GatekeeperTests.allTests),
-])
+var tests = [XCTestCaseEntry]()
+tests += GatekeeperTests.__allTests()
+
+XCTMain(tests)
