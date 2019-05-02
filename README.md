@@ -1,6 +1,6 @@
 # Gatekeeper 👮
-[![Swift Version](https://img.shields.io/badge/Swift-3-brightgreen.svg)](http://swift.org)
-[![Vapor Version](https://img.shields.io/badge/Vapor-2-F6CBCA.svg)](http://vapor.codes)
+[![Swift Version](https://img.shields.io/badge/Swift-4.2-brightgreen.svg)](http://swift.org)
+[![Vapor Version](https://img.shields.io/badge/Vapor-3-30B6FC.svg)](http://vapor.codes)
 [![Circle CI](https://circleci.com/gh/nodes-vapor/gatekeeper/tree/master.svg?style=shield)](https://circleci.com/gh/nodes-vapor/gatekeeper)
 [![codebeat badge](https://codebeat.co/badges/35c7b0bb-1662-44ae-b953-ab1d4aaf231f)](https://codebeat.co/projects/github-com-nodes-vapor-gatekeeper-master)
 [![codecov](https://codecov.io/gh/nodes-vapor/gatekeeper/branch/master/graph/badge.svg)](https://codecov.io/gh/nodes-vapor/gatekeeper)
@@ -8,85 +8,75 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/nodes-vapor/gatekeeper/master/LICENSE)
 
 Gatekeeper is a middleware that restricts the number of requests from clients, based on their IP address.
-It works by adding the clients IP address to the cache and count how many requests the clients can make during the Gatekeeper's defined lifespan and give back an HTTP 429(Too Many Requests) if the limit has been reached. The number of requests left will be reset when the defined timespan has been reached
+It works by adding the clients IP address to the cache and count how many requests the clients can make during the Gatekeeper's defined lifespan and give back an HTTP 429(Too Many Requests) if the limit has been reached. The number of requests left will be reset when the defined timespan has been reached.
 
 **Please take into consideration that multiple clients can be using the same IP address. eg. public wifi**
 
 
 ## 📦 Installation
 
-Update your `Package.swift` file.
-```swift
-.Package(url: "https://github.com/nodes-vapor/gatekeeper", majorVersion: 0)
-```
-
-
-## Getting started 🚀
-
-`Gatekeeper` has two configurable fields: the maximum rate and the cache to use. If you don't supply your own cache the limiter will create its own, in-memory cache.
+Update your `Package.swift` dependencies:
 
 ```swift
-let gatekeeper = GateKeeper(rate: Rate(10, per: .minute))
+.package(url: "https://github.com/nodes-vapor/gatekeeper.git", from: "3.0.0"),
 ```
 
-### Adding middleware
-You can add the middleware either globally or to a route group.
-
-#### Adding Middleware Globally
-
-#### `Sources/App/Config+Setup.swift`
-```swift
-import Gatekeeper
-```
+as well as to your target (e.g. "App"):
 
 ```swift
-public func setup() throws {
-    // ...
-
-    addConfigurable(middleware: Gatekeeper(rate: Rate(10, per: .minute)), name: "gatekeeper")
-}
-```
-
-#### `Config/droplet.json`
-
-Add `gatekeeper` to the middleware array
-
-```json
-"middleware": [
-    "error",
-    "date",
-    "file",
-    "gatekeeper"
+targets: [
+    .target(name: "App", dependencies: [..., "Gatekeeper", ...]),
+// ...
 ]
 ```
 
+## Getting started 🚀
 
-#### Adding Middleware to a Route Group
+### Configuration
 
-```Swift
-let gatekeeper = Gatekeeper(rate: Rate(10, per: .minute))
+in configure.swift:
+```swift
+import Gatekeeper
 
-drop.group(gatekeeper) { group in
-   // Routes
+// [...]
+
+// Register providers first
+try services.register(
+    GatekeeperProvider(
+        config: GatekeeperConfig(maxRequests: 10, per: .second),
+        cacheFactory: { container -> KeyedCache in
+            return try container.make()
+        }
+    )
+)
+```
+
+### Add to routes
+
+You can add the `GatekeeperMiddleware` to specific routes or to all.
+
+**Specific routes**
+in routes.swift:
+```swift
+let protectedRoutes = router.grouped(GatekeeperMiddleware.self)
+protectedRoutes.get("protected/hello") { req in
+    return "Protected Hello, World!"
 }
 ```
 
-
-### The `Rate.Interval` enumeration
-
-The currently implemented intervals are:
+**For all requests**
+in configure.swift:
 ```swift
-case .second
-case .minute
-case .hour
-case .day
+// Register middleware
+var middlewares = MiddlewareConfig() // Create _empty_ middleware config
+middlewares.use(GatekeeperMiddleware.self)
+services.register(middlewares)
 ```
 
 ## Credits 🏆
 
-This package is developed and maintained by the Vapor team at [Nodes](https://www.nodes.dk).
+This package is developed and maintained by the Vapor team at [Nodes](https://www.nodesagency.com).
 The package owner for this project is [Tom](https://github.com/tomserowka).
-
 
 ## License 📄
 
