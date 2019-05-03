@@ -6,7 +6,8 @@ extension Request {
     static func test(
         gatekeeperConfig: GatekeeperConfig,
         url: URLRepresentable = "http://localhost:8080/test",
-        peerName: String? = "::1"
+        peerName: String? = "::1",
+        cacheFactory: ((Container) throws -> KeyedCache)? = nil
     ) throws -> Request {
         let config = Config()
 
@@ -15,7 +16,22 @@ extension Request {
             return MemoryKeyedCache()
         }
 
-        try services.register(GatekeeperProvider(config: gatekeeperConfig))
+        if let cacheFactory = cacheFactory {
+            try services.register(
+                GatekeeperProvider(
+                    config: gatekeeperConfig,
+                    cacheFactory: cacheFactory
+                )
+            )
+        } else {
+            try services.register(
+                GatekeeperProvider(
+                    config: gatekeeperConfig
+                )
+            )
+        }
+
+        services.register(GatekeeperMiddleware.self)
 
         let sharedThreadPool = BlockingIOThreadPool(numberOfThreads: 2)
         sharedThreadPool.start()
