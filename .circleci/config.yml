@@ -37,7 +37,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1l-spm-deps-{{ checksum "Package.swift" }}
+            - v1-spm-deps-{{ checksum "Package.swift" }}
       - run:
           name: Copy Package File
           command: cp Package.swift res
@@ -50,7 +50,7 @@ jobs:
           name: Restoring Package File
           command: mv res Package.swift
       - save_cache:
-          key: v1l-spm-deps-{{ checksum "Package.swift" }}
+          key: v1-spm-deps-{{ checksum "Package.swift" }}
           paths:
             - .build
 workflows:
