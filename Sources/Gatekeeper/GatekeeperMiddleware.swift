@@ -11,7 +11,6 @@ extension GatekeeperMiddleware: Middleware {
     ) throws -> EventLoopFuture<Response> {
 
         return try gatekeeper.accessEndpoint(on: request).do { entry in
-            print("Gatekeeper Entry: \(entry)")
         }.flatMap { _ in
             return try next.respond(to: request)
         }
