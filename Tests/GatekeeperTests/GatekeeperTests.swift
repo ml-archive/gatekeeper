@@ -43,7 +43,7 @@ class GatekeeperTests: XCTestCase {
 
         do {
             _ = try gatekeeperMiddleware.respond(to: request, chainingTo: TestResponder()).wait()
-            XCTAssertTrue(false, "Gatekeeper should throw")
+            XCTFail("Gatekeeper should throw")
         } catch let error as Abort {
             switch error.status {
                 case .forbidden:
@@ -76,7 +76,7 @@ class GatekeeperTests: XCTestCase {
         }
 
         let cache = try request.make(KeyedCache.self)
-        var entry = try! cache.get("gatekeeper_192.168.1.2", as: Gatekeeper.Entry.self).wait()
+        var entry = try cache.get("gatekeeper_192.168.1.2", as: Gatekeeper.Entry.self).wait()
         XCTAssertEqual(entry!.requestsLeft, 50)
 
         Thread.sleep(forTimeInterval: 1)

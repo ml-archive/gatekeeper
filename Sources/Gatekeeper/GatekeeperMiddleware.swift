@@ -8,10 +8,9 @@ extension GatekeeperMiddleware: Middleware {
     public func respond(
         to request: Request,
         chainingTo next: Responder
-    ) throws -> EventLoopFuture<Response> {
+    ) throws -> Future<Response> {
 
-        return try gatekeeper.accessEndpoint(on: request).do { entry in
-        }.flatMap { _ in
+        return try gatekeeper.accessEndpoint(on: request).flatMap { _ in
             return try next.respond(to: request)
         }
     }

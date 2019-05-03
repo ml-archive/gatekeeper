@@ -56,7 +56,7 @@ public struct Gatekeeper: Service {
                 if entry.requestsLeft < 0 {
                     throw Abort(
                         .tooManyRequests,
-                        reason: "Patience you must have, my young Padawan."
+                        reason: "Slow down. You sent too many requests."
                     )
                 }
                 return entry
