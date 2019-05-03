@@ -76,7 +76,7 @@ services.register(middlewares)
 ## Credits 🏆
 
 This package is developed and maintained by the Vapor team at [Nodes](https://www.nodesagency.com).
-The package owner for this project is [Tom](https://github.com/tomserowka).
+The package owner for this project is [Christian](https://github.com/cweinberger).
 
 ## License 📄
 
