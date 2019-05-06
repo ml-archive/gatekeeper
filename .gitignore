@@ -5,7 +5,6 @@ xcuserdata
 *.xcodeproj
 Config/secrets/
 .DS_Store
-node_modules/
-bower_components/
 .swift-version
 CMakeLists.txt
+Package.resolved
