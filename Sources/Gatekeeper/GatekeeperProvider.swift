@@ -3,31 +3,23 @@ import Vapor
 public final class GatekeeperProvider {
 
     internal let config: GatekeeperConfig
-    internal let cacheFactory: ((Container) throws -> KeyedCache)
 
-    public init(
-        config: GatekeeperConfig,
-        cacheFactory: @escaping ((Container) throws -> KeyedCache) = { container in try container.make() }
-    ) {
+    public init(config: GatekeeperConfig = GatekeeperConfig(maxRequests: 10, per: .second)) {
         self.config = config
-        self.cacheFactory = cacheFactory
     }
 }
 
 extension GatekeeperProvider: Provider {
-    public func register(_ services: inout Services) throws {
-        services.register(config)
-        services.register(
-            Gatekeeper(
-                config: config,
-                cacheFactory: cacheFactory
-            ),
-            as: Gatekeeper.self
-        )
-        services.register(GatekeeperMiddleware.self)
+
+    public func register(_ app: Application) {
+
+        app.register(extension: MiddlewareConfiguration.self) { (configuration: inout MiddlewareConfiguration, app: Application) in
+
+            let cache: GateKeeperCache = app.make()
+            let gateKeeper = Gatekeeper(config: self.config, cache: cache)
+            let middleware = GatekeeperMiddleware(gatekeeper: gateKeeper)
+            configuration.use(middleware)
+        }
     }
 
-    public func didBoot(_ container: Container) throws -> EventLoopFuture<Void> {
-        return .done(on: container)
-    }
 }

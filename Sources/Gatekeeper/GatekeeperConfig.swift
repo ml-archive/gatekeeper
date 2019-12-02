@@ -1,6 +1,6 @@
 import Vapor
 
-public struct GatekeeperConfig: Service {
+public struct GatekeeperConfig {
 
     public enum Interval {
         case second

@@ -1,45 +1,33 @@
 import Vapor
+import RedisKit
 
-public struct Gatekeeper: Service {
+public struct Gatekeeper {
 
     internal let config: GatekeeperConfig
-    internal let cacheFactory: ((Container) throws -> KeyedCache)
+    internal let cache: GateKeeperCache
 
-    public init(
-        config: GatekeeperConfig,
-        cacheFactory: @escaping ((Container) throws -> KeyedCache) = { container in try container.make() }
-    ) {
+    public init(config: GatekeeperConfig, cache: GateKeeperCache) {
         self.config = config
-        self.cacheFactory = cacheFactory
+        self.cache = cache
     }
 
-    public func accessEndpoint(
-        on request: Request
-    ) throws -> Future<Gatekeeper.Entry> {
+    internal func accessEndpoint(on request: Request) throws -> EventLoopFuture<Gatekeeper.Entry> {
 
-        guard let peerHostName = request.http.remotePeer.hostname else {
-            throw Abort(
-                .forbidden,
-                reason: "Unable to verify peer"
-            )
+        guard let ipAddress = request.remoteAddress?.ipAddress else {
+            throw Abort(.forbidden, reason: "Unable to verify peer")
         }
 
-        let peerCacheKey = cacheKey(for: peerHostName)
-        let cache = try cacheFactory(request)
+        let peerCacheKey = self.cacheKey(for: ipAddress)
 
-        return cache.get(peerCacheKey, as: Entry.self)
-            .map(to: Entry.self) { entry in
+        return self.cache.get(peerCacheKey, as: Entry.self)
+            .map({ entry -> Gatekeeper.Entry in
                 if let entry = entry {
                     return entry
                 } else {
-                    return Entry(
-                        peerHostname: peerHostName,
-                        createdAt: Date(),
-                        requestsLeft: self.config.limit
-                    )
+                    return Entry(ipAddress: ipAddress, createdAt: Date(), requestsLeft: self.config.limit)
                 }
             }
-            .map(to: Entry.self) { entry in
+            .map({ entry -> Gatekeeper.Entry in
 
                 let now = Date()
                 var mutableEntry = entry
@@ -49,28 +37,25 @@ public struct Gatekeeper: Service {
                 }
                 mutableEntry.requestsLeft -= 1
                 return mutableEntry
-            }.then { entry in
-                return cache.set(peerCacheKey, to: entry).transform(to: entry)
-            }.map(to: Entry.self) { entry in
+            })
+            .then( { entry in
+                return self.cache.set(peerCacheKey, to: entry).transform(to: entry)
+            })
+            .map({ entry in
 
                 if entry.requestsLeft < 0 {
-                    throw Abort(
-                        .tooManyRequests,
-                        reason: "Slow down. You sent too many requests."
-                    )
+                    throw Abort(.tooManyRequests, reason: "Slow down. You sent too many requests.")
                 }
                 return entry
-            }
+            })
     }
 
-    private func cacheKey(for hostname: String) -> String {
-        return "gatekeeper_\(hostname)"
-    }
+    private func cacheKey(for hostname: String) -> String { return "gatekeeper_\(hostname)" }
 }
 
 extension Gatekeeper {
     public struct Entry: Codable {
-        let peerHostname: String
+        let ipAddress: String
         var createdAt: Date
         var requestsLeft: Int
     }

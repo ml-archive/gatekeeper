@@ -5,19 +5,12 @@ public struct GatekeeperMiddleware {
 }
 
 extension GatekeeperMiddleware: Middleware {
-    public func respond(
-        to request: Request,
-        chainingTo next: Responder
-    ) throws -> Future<Response> {
-
-        return try gatekeeper.accessEndpoint(on: request).flatMap { _ in
-            return try next.respond(to: request)
+    public func respond(to request: Request, chainingTo next: Responder) -> EventLoopFuture<Response> {
+        do {
+            let response = try gatekeeper.accessEndpoint(on: request).flatMap { _ in return next.respond(to: request) }
+            return response
+        } catch  {
+            return request.eventLoop.makeFailedFuture(error)
         }
-    }
-}
-
-extension GatekeeperMiddleware: ServiceType {
-    public static func makeService(for container: Container) throws -> GatekeeperMiddleware {
-        return try .init(gatekeeper: container.make())
     }
 }
