@@ -18,15 +18,15 @@ It works by adding the clients IP address to the cache and count how many reques
 Update your `Package.swift` dependencies:
 
 ```swift
-.package(url: "https://github.com/nodes-vapor/gatekeeper.git", from: "3.0.0"),
+    .package(url: "https://github.com/nodes-vapor/gatekeeper.git", from: "4.0.0"),
 ```
 
 as well as to your target (e.g. "App"):
 
 ```swift
-targets: [
-    .target(name: "App", dependencies: [..., "Gatekeeper", ...]),
-// ...
+    targets: [
+        .target(name: "App", dependencies: [..., "Gatekeeper", ...]),
+    // ...
 ]
 ```
 
@@ -34,43 +34,25 @@ targets: [
 
 ### Configuration
 
-in configure.swift:
+**Cache**
+
+You must implement the protocol GateKeeperCache and register it with the application before using GateKeeper
+
 ```swift
-import Gatekeeper
-
-// [...]
-
-// Register providers first
-try services.register(
-    GatekeeperProvider(
-        config: GatekeeperConfig(maxRequests: 10, per: .second),
-        cacheFactory: { container -> KeyedCache in
-            return try container.make()
-        }
-    )
-)
+    app.register(GateKeeperCache.self) { (app: Application) -> GateKeeperCache in
+        return MyGateKeeperCache()
+    }
 ```
 
-### Add to routes
-
-You can add the `GatekeeperMiddleware` to specific routes or to all.
-
-**Specific routes**
-in routes.swift:
-```swift
-let protectedRoutes = router.grouped(GatekeeperMiddleware.self)
-protectedRoutes.get("protected/hello") { req in
-    return "Protected Hello, World!"
-}
-```
 
 **For all requests**
 in configure.swift:
 ```swift
-// Register middleware
-var middlewares = MiddlewareConfig() // Create _empty_ middleware config
-middlewares.use(GatekeeperMiddleware.self)
-services.register(middlewares)
+
+// Register providers first
+    let gateKeeperConfig = GatekeeperConfig(maxRequests: 10, per: .second)
+    app.provider(GatekeeperProvider(config: gateKeeperConfig)(
+
 ```
 
 ## Credits 🏆

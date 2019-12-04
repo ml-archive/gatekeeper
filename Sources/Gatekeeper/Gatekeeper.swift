@@ -1,5 +1,4 @@
 import Vapor
-import RedisKit
 
 public struct Gatekeeper {
 
@@ -14,7 +13,7 @@ public struct Gatekeeper {
     internal func accessEndpoint(on request: Request) throws -> EventLoopFuture<Gatekeeper.Entry> {
 
         guard let ipAddress = request.remoteAddress?.ipAddress else {
-            throw Abort(.forbidden, reason: "Unable to verify peer")
+            return request.eventLoop.makeFailedFuture(GateKeeperError.forbidden)
         }
 
         let peerCacheKey = self.cacheKey(for: ipAddress)
@@ -26,7 +25,7 @@ public struct Gatekeeper {
                 } else {
                     return Entry(ipAddress: ipAddress, createdAt: Date(), requestsLeft: self.config.limit)
                 }
-            }
+            })
             .map({ entry -> Gatekeeper.Entry in
 
                 let now = Date()
@@ -38,14 +37,11 @@ public struct Gatekeeper {
                 mutableEntry.requestsLeft -= 1
                 return mutableEntry
             })
-            .then( { entry in
-                return self.cache.set(peerCacheKey, to: entry).transform(to: entry)
+            .flatMap( { entry -> EventLoopFuture<Gatekeeper.Entry> in
+                return self.cache.set(peerCacheKey, to: entry).map { entry }
             })
-            .map({ entry in
-
-                if entry.requestsLeft < 0 {
-                    throw Abort(.tooManyRequests, reason: "Slow down. You sent too many requests.")
-                }
+            .flatMapThrowing({ entry in
+                if entry.requestsLeft < 0 { throw GateKeeperError.tooManyRequests }
                 return entry
             })
     }

@@ -1,56 +1,29 @@
 import Gatekeeper
-import HTTP
 import Vapor
 
 extension Request {
     static func test(
-        gatekeeperConfig: GatekeeperConfig,
-        url: URLRepresentable = "http://localhost:8080/test",
-        peerName: String? = "::1",
-        cacheFactory: ((Container) throws -> KeyedCache)? = nil
+        url: URI = URI(string: "http://localhost:8080/test"),
+        gatekeeperConfig: GatekeeperConfig = GatekeeperConfig(maxRequests: 10, per: .second),
+        peerName: String? = "::1"
     ) throws -> Request {
-        let config = Config()
 
-        var services = Services()
-        services.register(KeyedCache.self) { container in
-            return MemoryKeyedCache()
+        let app =  Application(environment: .development)
+        app.register(GateKeeperCache.self) { (app: Application) in
+            return GateKeeperCacheMemoryCache()
         }
+        app.provider(GatekeeperProvider(config: gatekeeperConfig))
 
-        if let cacheFactory = cacheFactory {
-            try services.register(
-                GatekeeperProvider(
-                    config: gatekeeperConfig,
-                    cacheFactory: cacheFactory
-                )
-            )
-        } else {
-            try services.register(
-                GatekeeperProvider(
-                    config: gatekeeperConfig
-                )
-            )
-        }
-
-        services.register(GatekeeperMiddleware.self)
-
-        let sharedThreadPool = BlockingIOThreadPool(numberOfThreads: 2)
-        sharedThreadPool.start()
-        services.register(sharedThreadPool)
-        
-        let app = try Application(config: config, environment: .testing, services: services)
+        let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1) //???
         let request = Request(
-            http: HTTPRequest(
-                method: .GET,
-                url: url
-            ),
-            using: app
+            application: app,
+            url: url,
+            on: eventLoop.next()
         )
 
-        var http = request.http
         if let peerName = peerName {
-            http.headers.add(name: .init("X-Forwarded-For"), value: peerName)
+            request.headers.add(name: "X-Forwarded-For", value: peerName)
         }
-        request.http = http
 
         return request
     }

@@ -1,7 +1,9 @@
 import Vapor
 
 public struct TestResponder: Responder {
-    public func respond(to req: Request) throws -> EventLoopFuture<Response> {
-        return req.future(req.response())
+
+    public func respond(to req: Request) -> EventLoopFuture<Response> {
+        let response = Response()
+        return req.eventLoop.future(response)
     }
 }
