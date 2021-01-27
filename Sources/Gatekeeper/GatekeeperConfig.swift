@@ -1,7 +1,6 @@
 import Vapor
 
-public struct GatekeeperConfig: Service {
-
+public struct GatekeeperConfig {
     public enum Interval {
         case second
         case minute
@@ -17,7 +16,7 @@ public struct GatekeeperConfig: Service {
         self.interval = interval
     }
 
-    internal var refreshInterval: Double {
+    var refreshInterval: Double {
         switch interval {
         case .second:
             return 1
