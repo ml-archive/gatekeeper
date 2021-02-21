@@ -9,6 +9,7 @@ extension Request {
         .init(
             cache: cache ?? application.gatekeeper.caches.cache.for(self),
             config: config ?? application.gatekeeper.config,
-            identifier: keyMaker ?? application.gatekeeper.keyMakers.keyMaker)
+            identifier: keyMaker ?? application.gatekeeper.keyMakers.keyMaker
+        )
     }
 }

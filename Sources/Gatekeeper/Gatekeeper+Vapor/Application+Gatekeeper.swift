@@ -67,7 +67,7 @@ extension Application.Gatekeeper {
                 self.run = run
             }
             
-            /// A provider that uses the defaultt Vapor in-memory cache.
+            /// A provider that uses the default Vapor in-memory cache.
             public static var memory: Self {
                 .init { app in
                     app.caches.use(.memory)
@@ -98,7 +98,7 @@ extension Application.Gatekeeper {
     }
 }
 
-// MARK: - Gatekeeper+Keymaker
+// MARK: - Gatekeeper+Keymakers
 extension Application.Gatekeeper {
     public struct KeyMakers {
         private let gatekeeper: Application.Gatekeeper

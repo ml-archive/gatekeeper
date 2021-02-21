@@ -9,7 +9,7 @@ class GatekeeperTests: XCTestCase {
         app.gatekeeper.config = .init(maxRequests: 10, per: .second)
         
         app.grouped(GatekeeperMiddleware()).get("test") { req -> HTTPStatus in
-                return .ok
+            return .ok
         }
         
         for i in 1...10 {
