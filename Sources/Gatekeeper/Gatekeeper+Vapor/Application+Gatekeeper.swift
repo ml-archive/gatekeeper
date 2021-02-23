@@ -29,7 +29,7 @@ extension Application {
         
         private func initialize() {
             app.storage[Key.self] = Storage()
-            app.gatekeeper.caches.use(.memory)
+            app.gatekeeper.caches.use(.default)
             app.gatekeeper.keyMakers.use(.hostname)
         }
         
@@ -67,10 +67,9 @@ extension Application.Gatekeeper {
                 self.run = run
             }
             
-            /// A provider that uses the default Vapor in-memory cache.
-            public static var memory: Self {
+            /// A provider that uses the default Vapor cache.
+            public static var `default`: Self {
                 .init { app in
-                    app.caches.use(.memory)
                     app.gatekeeper.caches.use { $0.cache }
                 }
             }
