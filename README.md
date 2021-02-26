@@ -61,7 +61,7 @@ app.middlewares.use(GatekeeperMiddleware())
 ```
 
 #### Customizing config
-By default `GatekeeperMiddleware` uses `app.gatekeeper.config` as it's configuration.
+By default `GatekeeperMiddleware` uses `app.gatekeeper.config` as its configuration.
 However, you can pass a custom configuration to each `GatekeeperMiddleware` type via the initializer
 `GatekeeperMiddleware(config:)`. This allows you to set configuration on a per-route basis.
 
@@ -102,7 +102,7 @@ app.gatekeeper.keyMakers.use(.userID)
 
 ## Cache 🗄
 Gatekeeper uses the same cache as configured by `app.caches.use()` from Vapor, by default.
-Therefore it is **important** to setup Vapor's cache if you're using this default behaviour. You can use an in-memory cache for Vapor like so:
+Therefore it is **important** to set up Vapor's cache if you're using this default behaviour. You can use an in-memory cache for Vapor like so:
 
 **configure.swift**:
 ```swift
@@ -117,6 +117,7 @@ You can override which cache to use by creating your own type that conforms to t
 
 This package is developed and maintained by the Vapor team at [Nodes](https://www.nodesagency.com).
 The package owner for this project is [Christian](https://github.com/cweinberger).
+Special thanks goes to [madsodgaard](https://github.com/madsodgaard) for his work on the Vapor 4 version!
 
 ## License 📄
 
