@@ -1,122 +1,67 @@
 import XCTest
-import Vapor
+import XCTVapor
 @testable import Gatekeeper
 
 class GatekeeperTests: XCTestCase {
-
     func testGateKeeper() throws {
-
-        let request = try Request.test(
-            gatekeeperConfig: GatekeeperConfig(maxRequests: 10, per: .minute),
-            peerName: "::1"
-        )
-
-        let gatekeeperMiddleware = try request.make(GatekeeperMiddleware.self)
-
-        for i in 1...11 {
-            do {
-                _ = try gatekeeperMiddleware.respond(to: request, chainingTo: TestResponder()).wait()
-                XCTAssertTrue(i <= 10, "ran \(i) times.")
-            } catch let error as Abort {
-                switch error.status {
-                    case .tooManyRequests:
-                        //success
-                        XCTAssertEqual(i, 11, "Should've failed after the 11th attempt.")
-                        break
-                    default:
-                        XCTFail("Expected too many request: \(error)")
+        let app = Application(.testing)
+        defer { app.shutdown() }
+        app.gatekeeper.config = .init(maxRequests: 10, per: .second)
+        
+        app.grouped(GatekeeperMiddleware()).get("test") { req -> HTTPStatus in
+            return .ok
+        }
+        
+        for i in 1...10 {
+            try app.test(.GET, "test", headers: ["X-Forwarded-For": "::1"], afterResponse: { res in
+                if i == 10 {
+                    XCTAssertEqual(res.status, .tooManyRequests)
+                } else {
+                    XCTAssertEqual(res.status, .ok, "failed for request \(i) with status: \(res.status)")
                 }
-            } catch {
-                XCTFail("Caught wrong error: \(error)")
-            }
+            })
         }
     }
     
-    func testGateKeeperNoPeer() throws {
-
-        let request = try Request.test(
-            gatekeeperConfig: GatekeeperConfig(maxRequests: 10, per: .minute),
-            peerName: nil
-        )
-
-        let gatekeeperMiddleware = try request.make(GatekeeperMiddleware.self)
-
-        do {
-            _ = try gatekeeperMiddleware.respond(to: request, chainingTo: TestResponder()).wait()
-            XCTFail("Gatekeeper should throw")
-        } catch let error as Abort {
-            switch error.status {
-                case .forbidden:
-                    //success
-                    break
-                default:
-                    XCTFail("Expected forbidden")
-            }
-        } catch {
-            XCTFail("Rate limiter failed: \(error)")
+    func testGateKeeperNoPeerReturnsForbidden() throws {
+        let app = Application(.testing)
+        defer { app.shutdown() }
+        app.gatekeeper.config = .init(maxRequests: 10, per: .second)
+        
+        app.grouped(GatekeeperMiddleware()).get("test") { req -> HTTPStatus in
+            return .ok
         }
+
+        try app.test(.GET, "test", afterResponse: { res in
+            XCTAssertEqual(res.status, .forbidden)
+        })
     }
-
+    
     func testGateKeeperCountRefresh() throws {
-
-        let request = try Request.test(
-            gatekeeperConfig: GatekeeperConfig(maxRequests: 100, per: .second),
-            peerName: "192.168.1.2"
-        )
-
-        let gatekeeperMiddleware = try request.make(GatekeeperMiddleware.self)
-
+        let app = Application(.testing)
+        defer { app.shutdown() }
+        app.gatekeeper.config = .init(maxRequests: 100, per: .second)
+        app.grouped(GatekeeperMiddleware()).get("test") { req -> HTTPStatus in
+            return .ok
+        }
+        
         for _ in 0..<50 {
-            do {
-                _ = try gatekeeperMiddleware.respond(to: request, chainingTo: TestResponder()).wait()
-            } catch {
-                XCTFail("Rate limiter failed: \(error)")
-                break
-            }
+            try app.test(.GET, "test", headers: ["X-Forwarded-For": "::1"], afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+            })
         }
 
-        let cache = try request.make(KeyedCache.self)
-        var entry = try cache.get("gatekeeper_192.168.1.2", as: Gatekeeper.Entry.self).wait()
-        XCTAssertEqual(entry!.requestsLeft, 50)
+        let entryBefore = try app.gatekeeper.caches.cache .get("gatekeeper_::1", as: Gatekeeper.Entry.self).wait()
+        XCTAssertEqual(entryBefore!.requestsLeft, 50)
 
         Thread.sleep(forTimeInterval: 1)
-        do {
-            _ = try gatekeeperMiddleware.respond(to: request, chainingTo: TestResponder()).wait()
-        } catch {
-            XCTFail("Rate limiter failed: \(error)")
-        }
+        
+        try app.test(.GET, "test", headers: ["X-Forwarded-For": "::1"], afterResponse: { res in
+            XCTAssertEqual(res.status, .ok)
+        })
 
-        entry = try! cache.get("gatekeeper_192.168.1.2", as: Gatekeeper.Entry.self).wait()
-        XCTAssertEqual(entry!.requestsLeft, 99, "Requests left should've reset")
-    }
-
-    func testGateKeeperWithCacheFactory() throws {
-
-        let request = try Request.test(
-            gatekeeperConfig: GatekeeperConfig(maxRequests: 10, per: .minute),
-            peerName: "::1",
-            cacheFactory: { try $0.make(KeyedCache.self) }
-        )
-
-        let gatekeeperMiddleware = try request.make(GatekeeperMiddleware.self)
-
-        for i in 1...11 {
-            do {
-                _ = try gatekeeperMiddleware.respond(to: request, chainingTo: TestResponder()).wait()
-                XCTAssertTrue(i <= 10, "ran \(i) times.")
-            } catch let error as Abort {
-                switch error.status {
-                case .tooManyRequests:
-                    //success
-                    XCTAssertEqual(i, 11, "Should've failed after the 11th attempt.")
-                    break
-                default:
-                    XCTFail("Expected too many request: \(error)")
-                }
-            } catch {
-                XCTFail("Caught wrong error: \(error)")
-            }
-        }
+        let entryAfter = try app.gatekeeper.caches.cache .get("gatekeeper_::1", as: Gatekeeper.Entry.self).wait()
+        XCTAssertEqual(entryAfter!.requestsLeft, 99, "Requests left should've reset")
     }
 
     func testRefreshIntervalValues() {
@@ -131,5 +76,36 @@ class GatekeeperTests: XCTestCase {
             let rate = GatekeeperConfig(maxRequests: 1, per: interval)
             XCTAssertEqual(rate.refreshInterval, expected)
         }
+    }
+    
+    func testGatekeeperUsesKeyMaker() throws {
+        struct DummyKeyMaker: GatekeeperKeyMaker {
+            func make(for req: Request) -> EventLoopFuture<String> {
+                req.eventLoop.future("dummy")
+            }
+        }
+        
+        let app = Application(.testing)
+        defer { app.shutdown() }
+        app.gatekeeper.config = .init(maxRequests: 10, per: .second)
+        app.gatekeeper.keyMakers.use { _ in
+            DummyKeyMaker()
+        }
+        
+        app.grouped(GatekeeperMiddleware()).get("test") { req -> HTTPStatus in
+            return .ok
+        }
+        
+        try app.test(.GET, "test", headers: ["X-Forwarded-For": "::1"], afterResponse: { _ in })
+        
+        let entry = try app.gatekeeper.caches.cache.get("dummy", as: Gatekeeper.Entry.self).wait()
+        XCTAssertNotNil(entry)
+    }
+    
+    func testGatekeeperDefaultProviders() throws {
+        let app = Application(.testing)
+        defer { app.shutdown() }
+        
+        XCTAssertTrue(app.gatekeeper.keyMakers.keyMaker is GatekeeperHostnameKeyMaker)
     }
 }

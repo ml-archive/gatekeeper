@@ -1,23 +1,18 @@
 import Vapor
 
-public struct GatekeeperMiddleware {
-    let gatekeeper: Gatekeeper
-}
-
-extension GatekeeperMiddleware: Middleware {
-    public func respond(
-        to request: Request,
-        chainingTo next: Responder
-    ) throws -> Future<Response> {
-
-        return try gatekeeper.accessEndpoint(on: request).flatMap { _ in
-            return try next.respond(to: request)
-        }
+/// Middleware used to rate-limit a single route or a group of routes.
+public struct GatekeeperMiddleware: Middleware {
+    private let config: GatekeeperConfig?
+    
+    /// Initialize with a custom `GatekeeperConfig` instead of using the default `app.gatekeeper.config`
+    public init(config: GatekeeperConfig? = nil) {
+        self.config = config
     }
-}
-
-extension GatekeeperMiddleware: ServiceType {
-    public static func makeService(for container: Container) throws -> GatekeeperMiddleware {
-        return try .init(gatekeeper: container.make())
+    
+    public func respond(to request: Request, chainingTo next: Responder) -> EventLoopFuture<Response> {
+        request
+            .gatekeeper(config: config)
+            .gatekeep(on: request)
+            .flatMap { next.respond(to: request) }
     }
 }

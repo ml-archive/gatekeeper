@@ -1,77 +1,50 @@
 import Vapor
 
-public struct Gatekeeper: Service {
-
-    internal let config: GatekeeperConfig
-    internal let cacheFactory: ((Container) throws -> KeyedCache)
-
-    public init(
-        config: GatekeeperConfig,
-        cacheFactory: @escaping ((Container) throws -> KeyedCache) = { container in try container.make() }
-    ) {
+public struct Gatekeeper {
+    private let cache: Cache
+    private let config: GatekeeperConfig
+    private let keyMaker: GatekeeperKeyMaker
+    
+    public init(cache: Cache, config: GatekeeperConfig, identifier: GatekeeperKeyMaker) {
+        self.cache = cache
         self.config = config
-        self.cacheFactory = cacheFactory
+        self.keyMaker = identifier
     }
-
-    public func accessEndpoint(
-        on request: Request
-    ) throws -> Future<Gatekeeper.Entry> {
-
-        guard let peerHostName = request.http.remotePeer.hostname else {
-            throw Abort(
-                .forbidden,
-                reason: "Unable to verify peer"
-            )
+    
+    public func gatekeep(on req: Request) -> EventLoopFuture<Void> {
+        keyMaker
+            .make(for: req)
+            .flatMap { cacheKey in
+                fetchOrCreateEntry(for: cacheKey, on: req)
+                    .map(updateEntry)
+                    .flatMap { entry in
+                        cache
+                            .set(cacheKey, to: entry)
+                            .transform(to: entry)
+                    }
+            }
+            .guard(
+                { $0.requestsLeft > 0 },
+                else: Abort(.tooManyRequests, reason: "Slow down. You sent too many requests."))
+            .transform(to: ())
+    }
+    
+    private func updateEntry(_ entry: Entry) -> Entry {
+        var newEntry = entry
+        if newEntry.hasExpired(within: config.refreshInterval) {
+            newEntry.reset(remainingRequests: config.limit)
         }
-
-        let peerCacheKey = cacheKey(for: peerHostName)
-        let cache = try cacheFactory(request)
-
-        return cache.get(peerCacheKey, as: Entry.self)
-            .map(to: Entry.self) { entry in
-                if let entry = entry {
-                    return entry
-                } else {
-                    return Entry(
-                        peerHostname: peerHostName,
-                        createdAt: Date(),
-                        requestsLeft: self.config.limit
-                    )
-                }
-            }
-            .map(to: Entry.self) { entry in
-
-                let now = Date()
-                var mutableEntry = entry
-                if now.timeIntervalSince1970 - entry.createdAt.timeIntervalSince1970 >= self.config.refreshInterval {
-                    mutableEntry.createdAt = now
-                    mutableEntry.requestsLeft = self.config.limit
-                }
-                mutableEntry.requestsLeft -= 1
-                return mutableEntry
-            }.then { entry in
-                return cache.set(peerCacheKey, to: entry).transform(to: entry)
-            }.map(to: Entry.self) { entry in
-
-                if entry.requestsLeft < 0 {
-                    throw Abort(
-                        .tooManyRequests,
-                        reason: "Slow down. You sent too many requests."
-                    )
-                }
-                return entry
-            }
+        newEntry.touch()
+        return newEntry
     }
-
-    private func cacheKey(for hostname: String) -> String {
-        return "gatekeeper_\(hostname)"
-    }
-}
-
-extension Gatekeeper {
-    public struct Entry: Codable {
-        let peerHostname: String
-        var createdAt: Date
-        var requestsLeft: Int
+    
+    private func fetchOrCreateEntry(for key: String, on req: Request) -> EventLoopFuture<Entry> {
+        guard let hostname = req.hostname else {
+            return req.eventLoop.future(error: Abort(.forbidden, reason: "Unable to verify peer"))
+        }
+        
+        return cache
+            .get(key, as: Entry.self)
+            .unwrap(orReplace: Entry(hostname: hostname, createdAt: Date(), requestsLeft: config.limit))
     }
 }

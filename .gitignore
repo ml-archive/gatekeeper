@@ -8,3 +8,4 @@ Config/secrets/
 .swift-version
 CMakeLists.txt
 Package.resolved
+.swiftpm
