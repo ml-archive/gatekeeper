@@ -14,12 +14,11 @@ extension Gatekeeper.Entry {
         Date().timeIntervalSince1970 - createdAt.timeIntervalSince1970 >= interval
     }
     
-    mutating func reset(remainingRequests: Int) {
-        createdAt = Date()
-        requestsLeft = remainingRequests
-    }
-    
     mutating func touch() {
-        requestsLeft -= 1
+        if requestsLeft > 0 {
+            requestsLeft -= 1
+        } else {
+            requestsLeft = 0
+        }
     }
 }

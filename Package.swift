@@ -12,7 +12,7 @@ let package = Package(
             targets: ["Gatekeeper"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/vapor.git", from: "4.38.0"),
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.44.0"),
     ],
     targets: [
         .target(
