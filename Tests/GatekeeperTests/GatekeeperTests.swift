@@ -12,9 +12,9 @@ class GatekeeperTests: XCTestCase {
             return .ok
         }
         
-        for i in 1...10 {
+        for i in 1...11 {
             try app.test(.GET, "test", headers: ["X-Forwarded-For": "::1"], afterResponse: { res in
-                if i == 10 {
+                if i == 11 {
                     XCTAssertEqual(res.status, .tooManyRequests)
                 } else {
                     XCTAssertEqual(res.status, .ok, "failed for request \(i) with status: \(res.status)")
@@ -51,7 +51,7 @@ class GatekeeperTests: XCTestCase {
             })
         }
 
-        let entryBefore = try app.gatekeeper.caches.cache .get("gatekeeper_::1", as: Gatekeeper.Entry.self).wait()
+        let entryBefore = try app.gatekeeper.caches.cache.get("gatekeeper_::1", as: Gatekeeper.Entry.self).wait()
         XCTAssertEqual(entryBefore!.requestsLeft, 50)
 
         Thread.sleep(forTimeInterval: 1)
@@ -62,6 +62,28 @@ class GatekeeperTests: XCTestCase {
 
         let entryAfter = try app.gatekeeper.caches.cache .get("gatekeeper_::1", as: Gatekeeper.Entry.self).wait()
         XCTAssertEqual(entryAfter!.requestsLeft, 99, "Requests left should've reset")
+    }
+    
+    func testGatekeeperCacheExpiry() throws {
+        let app = Application(.testing)
+        defer { app.shutdown() }
+        app.gatekeeper.config = .init(maxRequests: 5, per: .second)
+        app.grouped(GatekeeperMiddleware()).get("test") { req -> HTTPStatus in
+            return .ok
+        }
+        
+        for _ in 1...5 {
+            try app.test(.GET, "test", headers: ["X-Forwarded-For": "::1"], afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+            })
+        }
+        
+        let entryBefore = try app.gatekeeper.caches.cache.get("gatekeeper_::1", as: Gatekeeper.Entry.self).wait()
+        XCTAssertEqual(entryBefore!.requestsLeft, 0)
+        
+        Thread.sleep(forTimeInterval: 1)
+        
+        try XCTAssertNil(app.gatekeeper.caches.cache.get("gatekeeper_::1", as: Gatekeeper.Entry.self).wait())
     }
 
     func testRefreshIntervalValues() {

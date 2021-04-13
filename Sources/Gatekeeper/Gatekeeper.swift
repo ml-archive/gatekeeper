@@ -11,29 +11,31 @@ public struct Gatekeeper {
         self.keyMaker = identifier
     }
     
-    public func gatekeep(on req: Request) -> EventLoopFuture<Void> {
+    public func gatekeep(
+        on req: Request,
+        throwing error: Error = Abort(.tooManyRequests, reason: "Slow down. You sent too many requests.")
+    ) -> EventLoopFuture<Void> {
         keyMaker
             .make(for: req)
             .flatMap { cacheKey in
                 fetchOrCreateEntry(for: cacheKey, on: req)
+                    .guard(
+                        { $0.requestsLeft > 0 },
+                        else: error
+                    )
                     .map(updateEntry)
                     .flatMap { entry in
-                        cache
-                            .set(cacheKey, to: entry)
-                            .transform(to: entry)
+                        // The amount of time the entry has existed.
+                        let entryLifetime = Int(Date().timeIntervalSince1970 - entry.createdAt.timeIntervalSince1970)
+                        // Remaining time until the entry expires. The entry would be expired by cache if it was negative.
+                        let timeRemaining = Int(config.refreshInterval) - entryLifetime
+                        return cache.set(cacheKey, to: entry, expiresIn: .seconds(timeRemaining))
                     }
             }
-            .guard(
-                { $0.requestsLeft > 0 },
-                else: Abort(.tooManyRequests, reason: "Slow down. You sent too many requests."))
-            .transform(to: ())
     }
     
     private func updateEntry(_ entry: Entry) -> Entry {
         var newEntry = entry
-        if newEntry.hasExpired(within: config.refreshInterval) {
-            newEntry.reset(remainingRequests: config.limit)
-        }
         newEntry.touch()
         return newEntry
     }
