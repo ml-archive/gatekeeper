@@ -24,18 +24,14 @@ public struct Gatekeeper {
                         else: error
                     )
                     .map(updateEntry)
-                    .flatMap { entry -> EventLoopFuture<Entry> in
+                    .flatMap { entry in
                         // The amount of time the entry has existed.
                         let entryLifetime = Int(Date().timeIntervalSince1970 - entry.createdAt.timeIntervalSince1970)
                         // Remaining time until the entry expires. The entry would be expired by cache if it was negative.
                         let timeRemaining = Int(config.refreshInterval) - entryLifetime
-                        
-                        return cache
-                            .set(cacheKey, to: entry, expiresIn: .seconds(timeRemaining))
-                            .transform(to: entry)
+                        return cache.set(cacheKey, to: entry, expiresIn: .seconds(timeRemaining))
                     }
             }
-            .transform(to: ())
     }
     
     private func updateEntry(_ entry: Entry) -> Entry {
