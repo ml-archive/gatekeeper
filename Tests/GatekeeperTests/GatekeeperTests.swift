@@ -37,6 +37,27 @@ class GatekeeperTests: XCTestCase {
         })
     }
     
+    func testGateKeeperForwardedSupported() throws {
+        let app = Application(.testing)
+        defer { app.shutdown() }
+        app.gatekeeper.config = .init(maxRequests: 10, per: .second)
+        
+        app.grouped(GatekeeperMiddleware()).get("test") { req -> HTTPStatus in
+            return .ok
+        }
+
+        try app.test(
+            .GET,
+            "test",
+            beforeRequest: { req in
+                req.headers.forwarded = [HTTPHeaders.Forwarded(for: "\"[::1]\"")]
+            },
+            afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+            }
+        )
+    }
+    
     func testGateKeeperCountRefresh() throws {
         let app = Application(.testing)
         defer { app.shutdown() }
